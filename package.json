@@ -1,0 +1,19 @@
+{
+  "name": "ctml",
+  "version": "1.0.0",
+  "description": "A clean implementation of HTML.",
+  "preferGlobal": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sam Weaver <sam@samweaver.com>",
+  "license": "All Rights Reserved",
+  "bin": {
+    "ctml": "index.js"
+  },
+  "dependencies": {
+    "cheerio": "^0.19.0",
+    "htmltidy": "0.0.6",
+    "progressbar": "^1.0.3"
+  }
+}
