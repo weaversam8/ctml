@@ -25,8 +25,6 @@ console.log('                               ');
 var fs = require('fs');
 var path = require('path');
 
-var ProgressBar = require('progressbar').ProgressBar;
-var progress = new ProgressBar();
 var $ = require('cheerio');
 var tidy = require('htmltidy').tidy;
 
@@ -50,17 +48,13 @@ var fileText = fs.readFileSync(filePath, {
 
 // Now, start parsing
 
-progress.step('Parsing CTML File: ' + fileName).setTotal(5);
-
 var originalFileText = fileText;
 
 // 1, split on newlines
 
-progress.setTick(1);
 var parts = fileText.split(/\n/g);
 
 // 2, separate into objects by element
-progress.setTick(2);
 
 var elementArray = [];
 var currentElement = null;
@@ -96,16 +90,31 @@ for (var index in parts) {
             //2.3 if it's only a hyphen, it's an closing element
 
             //2.4 spaces in element definitions are ignored, unless quoted
+            //2.5 dots are reserved for class definitions, unless quoted
             // valueMatched = value.match(/[^\s"']+|"([^"]*)"|'([^']*)'/g);
             valueMatched = splitRespectingQuotes(value,'\\s',true);
 
             for (iter in valueMatched) {
                 // replace spaces with %s% and remove quotes
-                valueMatched[iter] = valueMatched[iter].replace(/ /g, '%s%').replace(/\"/g, '').replace(/\'/g, '');
+                valueMatched[iter] = valueMatched[iter].replace(/ /g, '%s%');
+            }
+
+            valueMatched2 = splitRespectingQuotes(valueMatched.join(''),'..');
+
+            for (iter2 in valueMatched2) {
+                // replace .. with %dd%
+                valueMatched2[iter2] = valueMatched2[iter2].replace(/\.\./g, '%dd%');
+            }
+
+            valueMatched3 = splitRespectingQuotes(valueMatched2.join(''),'.');
+
+            for (iter3 in valueMatched3){
+                // replace . with %d% and remove quotes
+                valueMatched3[iter3] = valueMatched3[iter3].replace(/\./g,'%d%').replace(/\"/g, '').replace(/\'/g, '');
             }
 
             //join
-            value = valueMatched.join('');
+            value = valueMatched3.join('');
 
             var finishElement = function() {
                 //if not master, just unnest
@@ -158,7 +167,7 @@ for (var index in parts) {
                             if (nextArrName != null) {
                                 if (nextArrName == 'attributes') {
                                     var arr = splitRespectingQuotes(elementParts[index],'=');
-                                    console.log(arr);
+                                    // console.log(arr);
                                     elementParts[index] = {
                                         key: arr[0]
                                     };
@@ -166,7 +175,9 @@ for (var index in parts) {
                                         arr.shift();
                                         var str = arr.join('=');
                                         // replace %s% with space
-                                        elementParts[index].value = str.replace(/%s%/g, ' ');
+                                        // replace %dd% with .. (for direct directory up and down)
+                                        // replace %d% with . (for direct directory up and down)
+                                        elementParts[index].value = str.replace(/%s%/g, ' ').replace(/%dd%/g, '..').replace(/%d%/g,'.');
                                     }
                                 }
                                 currentElement[nextArrName].push(elementParts[index]);
@@ -199,7 +210,6 @@ for (var index in parts) {
 
 
 // console.log('\n' + JSON.stringify(JSON.decycle(elementArray)));
-progress.setTick(3);
 
 // 3, compile into actual HTML
 var html = $.load('<html></html>')('html');
@@ -237,18 +247,18 @@ var loopFunction = function(parent, object) {
 
 loopFunction(html, elementArray);
 
-progress.setTick(4);
 // 4, beautify
 
-console.log(html.html());
+// console.log(html.html());
+
 
 tidy(html.html(), {
     'doctype': 'html5',
     'tidy-mark': false,
-    'indent': true
+    'indent': true,
+    'wrap': 0
 }, function(err, html) {
 
-    progress.setTick(5);
     console.log('\n[INF] Compile Complete.');
     console.log('[INF] Writing to file: dist/' + path.basename(fileName, path.extname(fileName)) + '.html');
 

@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "cheerio": "^0.19.0",
-    "htmltidy": "0.0.6",
-    "progressbar": "^1.0.3"
+    "htmltidy": "0.0.6"
   }
 }

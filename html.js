@@ -113,23 +113,22 @@ var processFunction = function(nodes) {
                 }
             }
 
-            outputString += elementString + '\n';
+            outputString += elementString;
 
+            elementString = '';
             //we now recurse for each child
-            if(node.children){
+            if(node.children.length > 0){
+                outputString += '\n';
                 tabLength++;
                 processFunction(node.children);
                 tabLength--;
-            }
 
-            elementString = '';
-
-            //and we now return the tab level to default
-            // tabLength--;
-
-            //add tabs to the element string for indent
-            for (var i = 0; i < tabLength; i++) {
-                elementString += '    ';
+                //add tabs to the element string for indent
+                for (var i = 0; i < tabLength; i++) {
+                    elementString += '    ';
+                }
+            } else {
+                outputString += ' ';
             }
 
             elementString += '-\n';
@@ -140,12 +139,19 @@ var processFunction = function(nodes) {
             // tabLength--;
 
             if (node.type == 'text') {
-                var tex = node.data.trim();
+                var tex = removeNewlines(node.data.trim());
                 if (tex == '') continue;
 
-                console.log(tex);
+                // console.log(tex);
 
                 elementString += tex + '\n';
+            }
+
+            if (node.type == 'comment') {
+                var tex = removeNewlines(node.data.trim());
+                if(tex == '') continue;
+
+                elementString += '// '+tex+'\n';
             }
         }
 
