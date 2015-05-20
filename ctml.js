@@ -188,6 +188,8 @@ for (var index in parts) {
 
                 // console.log('element initialized with name ' + currentElement.name);
             }
+        } else if(value.length > 1 && value.charAt(0) == '/' && value.charAt(1) == '/') {
+            // its a comment, ignore it completely
         } else {
             // not an element, add to children of currentElement
             currentElement.children.push(value);
@@ -237,6 +239,8 @@ loopFunction(html, elementArray);
 
 progress.setTick(4);
 // 4, beautify
+
+console.log(html.html());
 
 tidy(html.html(), {
     'doctype': 'html5',
