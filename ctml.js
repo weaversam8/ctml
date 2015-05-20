@@ -22,13 +22,44 @@ console.log('Sam Weaver  <sam@samweaver.com>');
 console.log('-------------------------------');
 console.log('                               ');
 
+var cliArgs = require("command-line-args");
+
+var cli = cliArgs([
+    {
+        name: 'help',
+        type: Boolean,
+        description: 'Output this screen.'
+    },
+    {
+        name: 'file',
+        type: String,
+        defaultOption: true,
+        description: 'The input file.'
+    },
+    {
+        name: 'comments',
+        alias: 'c',
+        type: Boolean,
+        description: 'Output CTML comments as HTML comments.'
+    }
+]);
+
+var options = cli.parse();
+if((Object.keys(options).length <= 0) || options.help || !(options.file)) {
+    console.log(cli.getUsage({
+        header: 'CTML Compiler',
+        footer: '\n  By Sam Weaver <sam@samweaver.com>'
+    }));
+    process.exit(0);
+}
+
 var fs = require('fs');
 var path = require('path');
 
 var $ = require('cheerio');
 var tidy = require('htmltidy').tidy;
 
-var fileName = process.argv[2] || null;
+var fileName = options.file || null;
 
 if (fileName == null) {
     console.log('[ERR] You must provide a file name as the argument for CTML.');
@@ -63,18 +94,27 @@ function escapeRegExp(str) {
     return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
 }
 
-function splitRespectingQuotes(str, delim, dontEscape){
+function matchRespectingQuotes(str, delim, dontEscape) {
 
-    if(!dontEscape) {
+    if (!dontEscape) {
         var delim = escapeRegExp(delim);
     }
 
-    var regex = new RegExp("[^"+delim+"\"']+|\"([^\"]*)\"|'([^']*)'",'g');
+    var regex = new RegExp("[^" + delim + "\"']+|\"([^\"]*)\"|'([^']*)'", 'g');
     // console.log(str.match(regex));
     return str.match(regex);
 
 }
 
+function splitRespectingQuotes(str, delim, dontEscape) {
+    if (!dontEscape) {
+        var delim = escapeRegExp(delim);
+    }
+
+    var regex = new RegExp('('+delim+')(?=(?:[^"]|"[^"]*")*$)','g');
+
+    return str.split(regex);
+}
 
 // 2.1 loop through array
 for (var index in parts) {
@@ -92,29 +132,30 @@ for (var index in parts) {
             //2.4 spaces in element definitions are ignored, unless quoted
             //2.5 dots are reserved for class definitions, unless quoted
             // valueMatched = value.match(/[^\s"']+|"([^"]*)"|'([^']*)'/g);
-            valueMatched = splitRespectingQuotes(value,'\\s',true);
+            valueMatched = matchRespectingQuotes(value, '\\s', true);
 
             for (iter in valueMatched) {
                 // replace spaces with %s% and remove quotes
+                // .replace(/\"/g, '').replace(/\'/g, '')
                 valueMatched[iter] = valueMatched[iter].replace(/ /g, '%s%');
             }
 
-            valueMatched2 = splitRespectingQuotes(valueMatched.join(''),'..');
-
-            for (iter2 in valueMatched2) {
-                // replace .. with %dd%
-                valueMatched2[iter2] = valueMatched2[iter2].replace(/\.\./g, '%dd%');
-            }
-
-            valueMatched3 = splitRespectingQuotes(valueMatched2.join(''),'.');
-
-            for (iter3 in valueMatched3){
-                // replace . with %d% and remove quotes
-                valueMatched3[iter3] = valueMatched3[iter3].replace(/\./g,'%d%').replace(/\"/g, '').replace(/\'/g, '');
-            }
+            // valueMatched2 = splitRespectingQuotes(valueMatched.join(''),'..');
+            //
+            // for (iter2 in valueMatched2) {
+            //     // replace .. with %dd%
+            //     valueMatched2[iter2] = valueMatched2[iter2].replace(/\.\./g, '%dd%');
+            // }
+            //
+            // valueMatched3 = splitRespectingQuotes(valueMatched2.join(''),'.');
+            //
+            // for (iter3 in valueMatched3){
+            //     // replace . with %d% and remove quotes
+            //     valueMatched3[iter3] = valueMatched3[iter3].replace(/\./g,'%d%').replace(/\"/g, '').replace(/\'/g, '');
+            // }
 
             //join
-            value = valueMatched3.join('');
+            value = valueMatched.join('');
 
             var finishElement = function() {
                 //if not master, just unnest
@@ -144,7 +185,28 @@ for (var index in parts) {
                     currentElement = {};
                 }
                 currentElement.children = [];
-                var elementParts = value.split(/(\.|#|\[|\])/g);
+                //we begin the parsing dance
+
+                // var elementParts = value.split(/(\.|#|\[|\])/g);
+                var elementParts = splitRespectingQuotes(value, '.');
+                value = elementParts.join('%nt%dot%');
+
+                var elementParts = splitRespectingQuotes(value,'#');
+                value = elementParts.join('%nt%id%');
+
+                var elementParts = splitRespectingQuotes(value,'[');
+                value = elementParts.join('%nt%lb%');
+
+                var elementParts = splitRespectingQuotes(value,']');
+                value = elementParts.join('%nt%rb%');
+
+                //remove quotes
+                value = value.replace(/"/g,'').replace(/'/g,'');
+
+                var elementParts = value.split(/(%nt%dot%|%nt%id%|%nt%lb%|%nt%rb%)/g);
+
+                // console.log(elementParts);
+                // continue;
                 currentElement.name = elementParts[0].replace('-', '');
                 currentElement.id = [];
                 currentElement.classes = [];
@@ -154,19 +216,19 @@ for (var index in parts) {
                 for (var index in elementParts) {
                     if (index == 0) continue;
                     switch (elementParts[index]) {
-                        case "#":
+                        case "%nt%id%":
                             nextArrName = "id";
                             break;
-                        case ".":
+                        case "%nt%dot%":
                             nextArrName = "classes";
                             break;
-                        case "[":
+                        case "%nt%lb%":
                             nextArrName = "attributes";
                             break;
                         default:
                             if (nextArrName != null) {
                                 if (nextArrName == 'attributes') {
-                                    var arr = splitRespectingQuotes(elementParts[index],'=');
+                                    var arr = matchRespectingQuotes(elementParts[index], '=');
                                     // console.log(arr);
                                     elementParts[index] = {
                                         key: arr[0]
@@ -175,9 +237,7 @@ for (var index in parts) {
                                         arr.shift();
                                         var str = arr.join('=');
                                         // replace %s% with space
-                                        // replace %dd% with .. (for direct directory up and down)
-                                        // replace %d% with . (for direct directory up and down)
-                                        elementParts[index].value = str.replace(/%s%/g, ' ').replace(/%dd%/g, '..').replace(/%d%/g,'.');
+                                        elementParts[index].value = str.replace(/%s%/g, ' ').replace(/%dd%/g, '..').replace(/%d%/g, '.');
                                     }
                                 }
                                 currentElement[nextArrName].push(elementParts[index]);
@@ -199,8 +259,12 @@ for (var index in parts) {
 
                 // console.log('element initialized with name ' + currentElement.name);
             }
-        } else if(value.length > 1 && value.charAt(0) == '/' && value.charAt(1) == '/') {
+        } else if (value.length > 1 && value.charAt(0) == '/' && value.charAt(1) == '/') {
             // its a comment, ignore it completely
+            // TODO: add config option to output comments
+            if(options.comments) {
+                currentElement.children.push(' <!-- '+value+'-->');
+            }
         } else {
             // not an element, add to children of currentElement
             currentElement.children.push(value);
@@ -235,6 +299,7 @@ var loopFunction = function(parent, object) {
         }
         for (index in object[key].classes) {
             var className = object[key].classes[index] || '';
+            if(className == '.') continue;
             newEl.addClass(className);
         }
         //recurse

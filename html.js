@@ -16,13 +16,38 @@ console.log('Sam Weaver  <sam@samweaver.com>');
 console.log('-------------------------------');
 console.log('                               ');
 
+var cliArgs = require("command-line-args");
+
+var cli = cliArgs([
+    {
+        name: 'help',
+        type: Boolean,
+        description: 'Output this screen.'
+    },
+    {
+        name: 'file',
+        type: String,
+        defaultOption: true,
+        description: 'The input file.'
+    }
+]);
+
+var options = cli.parse();
+if((Object.keys(options).length <= 0) || options.help || !(options.file)) {
+    console.log(cli.getUsage({
+        header: 'CTML Decompiler',
+        footer: '\n  By Sam Weaver <sam@samweaver.com>'
+    }));
+    process.exit(0);
+}
+
 var fs = require('fs');
 var path = require('path');
 
 var cheerio = require('cheerio');
 
 
-var fileName = process.argv[2] || null;
+var fileName = options.file;
 
 if (fileName == null) {
     console.log('[ERR] You must provide a file name as the argument for CTML.');
