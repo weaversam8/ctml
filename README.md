@@ -1,6 +1,8 @@
 Clean Text Markup Language
 ==========================
 
+[![GitHub version](https://badge.fury.io/gh/weaversam8%2Fctml.svg)](http://badge.fury.io/gh/weaversam8%2Fctml) [![npm version](https://badge.fury.io/js/ctml.svg)](http://badge.fury.io/js/ctml)
+
 **C**lean **T**ext **M**arkup **L**anguage, or **CTML** is a simplified way to do your web coding.
 
 ## Introduction

@@ -59,6 +59,8 @@ var path = require('path');
 var $ = require('cheerio');
 var tidy = require('htmltidy').tidy;
 
+__dirname = process.cwd();
+
 var fileName = options.file || null;
 
 if (fileName == null) {

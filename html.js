@@ -46,6 +46,7 @@ var path = require('path');
 
 var cheerio = require('cheerio');
 
+__dirname = process.cwd();
 
 var fileName = options.file;
 
