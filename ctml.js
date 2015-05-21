@@ -295,7 +295,7 @@ var loopFunction = function(parent, object) {
             newEl.attr(attrKey, attrValue);
         }
         if (object[key].id.length > 0) {
-            newEl.attr('id', object[key].id[0]);
+            newEl.attr('id', object[key].id[1]);
         }
         for (index in object[key].classes) {
             var className = object[key].classes[index] || '';
