@@ -1,6 +1,6 @@
 {
   "name": "ctml",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A clean implementation of HTML.",
   "preferGlobal": true,
   "scripts": {
